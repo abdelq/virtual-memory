@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 #include <stdio.h>
 
@@ -34,14 +33,20 @@ void tlb_init (FILE *log)
  * Renvoie le `frame_number`, si trouvé, ou un nombre négatif sinon.  */
 static int tlb__lookup (unsigned int page_number, bool write)
 {
-  // TODO: COMPLÉTER CETTE FONCTION.
+  for (int i = 0; i < TLB_NUM_ENTRIES; i++) {
+    if (page_number == tlb_entries[i].page_number){
+      if(write && tlb_entries[i].readonly) return -1;
+      // if not valid, frame number will already be negative
+      return tlb_entries[i].frame_number;
+    }
+  }
   return -1;
 }
 
 /* Ajoute dans le TLB une entrée qui associe `frame_number` à
  * `page_number`.  */
 static void tlb__add_entry (unsigned int page_number,
-                            unsigned int frame_number, bool readonly)
+    unsigned int frame_number, bool readonly)
 {
   // TODO: COMPLÉTER CETTE FONCTION.
 }
@@ -49,7 +54,7 @@ static void tlb__add_entry (unsigned int page_number,
 /******************** ¡ NE RIEN CHANGER CI-DESSOUS !  ******************/
 
 void tlb_add_entry (unsigned int page_number,
-                    unsigned int frame_number, bool readonly)
+    unsigned int frame_number, bool readonly)
 {
   tlb_mod_count++;
   tlb__add_entry (page_number, frame_number, readonly);
@@ -69,7 +74,7 @@ void tlb_clean (void)
   fprintf (stdout, "TLB hits     : %3u\n", tlb_hit_count);
   fprintf (stdout, "TLB changes  : %3u\n", tlb_mod_count);
   fprintf (stdout, "TLB miss rate: %.1f%%\n",
-           100 * tlb_miss_count
-           /* Ajoute 0.01 pour éviter la division par 0.  */
-           / (0.01 + tlb_hit_count + tlb_miss_count));
+      100 * tlb_miss_count
+      /* Ajoute 0.01 pour éviter la division par 0.  */
+      / (0.01 + tlb_hit_count + tlb_miss_count));
 }
