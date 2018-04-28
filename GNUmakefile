@@ -34,6 +34,9 @@ run: all
 clean:
 	$(RM) -r $(BUILD_DIR) *.aux *.log
 
+indent:
+	indent -linux src/*.{c,h}
+
 %.pdf: %.tex
 	pdflatex $<
 
