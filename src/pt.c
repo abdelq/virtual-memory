@@ -32,6 +32,11 @@ void pt_init(FILE * log)
  * Renvoie le `frame_number`, si valide, ou un nombre négatif sinon.  */
 static int pt__lookup(unsigned int page_number)
 {
+	if (page_number >= NUM_PAGES) {
+		fprintf(stderr, "PT: invalid page number\n");
+		return -1;
+	}
+
 	if (page_table[page_number].valid)
 		return page_table[page_number].frame_number;
 	return -1;
@@ -41,24 +46,48 @@ static int pt__lookup(unsigned int page_number)
  * pointe vers `frame_number`.  */
 static void pt__set_entry(unsigned int page_number, unsigned int frame_number)
 {
+	if (page_number >= NUM_PAGES) {
+		fprintf(stderr, "PT: invalid page number\n");
+		return;
+	}
+
 	page_table[page_number].frame_number = frame_number;
+	page_table[page_number].valid = frame_number < NUM_FRAMES;	// XXX
+	page_table[page_number].readonly = true;	// XXX
 }
 
 /* Marque l'entrée de `page_number` dans la page table comme invalide.  */
 void pt_unset_entry(unsigned int page_number)
 {
+	if (page_number >= NUM_PAGES) {
+		fprintf(stderr, "PT: invalid page number\n");
+		return;
+	}
+
 	page_table[page_number].valid = false;
 }
 
 /* Renvoie si `page_number` est `readonly`.  */
 bool pt_readonly_p(unsigned int page_number)
 {
-	return page_table[page_number].readonly;
+	if (page_number >= NUM_PAGES) {
+		fprintf(stderr, "PT: invalid page number\n");
+		return true;
+	}
+
+	if (page_table[page_number].valid)
+		return page_table[page_number].readonly;
+	return true;
 }
 
 /* Change l'accès en écriture de `page_number` selon `readonly`.  */
 void pt_set_readonly(unsigned int page_number, bool readonly)
 {
+	if (page_number >= NUM_PAGES) {
+		fprintf(stderr, "PT: invalid page number\n");
+		return;
+	}
+
 	page_table[page_number].readonly = readonly;
 }
 
