@@ -9,6 +9,7 @@ struct tlb_entry {
 	unsigned int page_number;
 	int frame_number;	/* Invalide si négatif.  */
 	bool readonly:1;
+	unsigned int uses;
 };
 
 static FILE *tlb_log = NULL;
@@ -33,10 +34,13 @@ void tlb_init(FILE * log)
 static int tlb__lookup(unsigned int page_number, bool write)
 {
 	for (int i = 0; i < TLB_NUM_ENTRIES; i++) {
-		if (page_number == tlb_entries[i].page_number) {
-			if (write && tlb_entries[i].readonly)
-				return -1;
-			// if not valid, frame number will already be negative
+		if (tlb_entries[i].page_number == page_number) {
+			// XXX write?
+			/* if (write && tlb_entries[i].readonly)
+			   return -1; */
+
+			tlb_entries[i].uses++;
+			// If invalid, frame number will already be negative
 			return tlb_entries[i].frame_number;
 		}
 	}
@@ -45,16 +49,29 @@ static int tlb__lookup(unsigned int page_number, bool write)
 
 /* Ajoute dans le TLB une entrée qui associe `frame_number` à
  * `page_number`.  */
-static void tlb__add_entry(unsigned int page_number,
-			   unsigned int frame_number, bool readonly)
+static void tlb__add_entry(unsigned int page_number, unsigned int frame_number,
+			   bool readonly)
 {
-	// TODO: COMPLÉTER CETTE FONCTION.
+	int victim = 0;
+
+	for (int i = 0; i < TLB_NUM_ENTRIES; i++) {
+		if (tlb_entries[victim].frame_number < 0)
+			break;
+
+		/* Least-frequently used */
+		if (tlb_entries[i].frame_number < 0 ||
+		    tlb_entries[i].uses < tlb_entries[victim].uses)
+			victim = i;
+	}
+
+	struct tlb_entry new_entry = { page_number, frame_number, readonly, 0 };
+	tlb_entries[victim] = new_entry;	// XXX
 }
 
 /******************** ¡ NE RIEN CHANGER CI-DESSOUS !  ******************/
 
-void tlb_add_entry(unsigned int page_number,
-		   unsigned int frame_number, bool readonly)
+void tlb_add_entry(unsigned int page_number, unsigned int frame_number,
+		   bool readonly)
 {
 	tlb_mod_count++;
 	tlb__add_entry(page_number, frame_number, readonly);

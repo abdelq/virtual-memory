@@ -97,6 +97,9 @@ void pm_write(unsigned int physical_address, char c)
 
 void pm_clean(void)
 {
+	// XXX Final backup and flush
+	// https://studium.umontreal.ca/mod/forum/discuss.php?d=548447
+
 	// Enregistre l'état de la mémoire physique.
 	if (pm_log) {
 		for (unsigned int i = 0; i < PHYSICAL_MEMORY_SIZE; i++) {
