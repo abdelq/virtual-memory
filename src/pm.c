@@ -25,50 +25,61 @@ void pm_init(FILE * backing_store, FILE * log)
 void pm_download_page(unsigned int page_number, unsigned int frame_number)
 {
 	if (page_number >= NUM_PAGES || frame_number >= NUM_FRAMES) {
-		//TODO CHANGE EXIT CODE
-		perror("PAGE NUMBER OR FRAME NUMBER OUT OF BOUND");
-		exit(-1);
+		fprintf(stderr, "PM: invalid page or frame number\n");
+		return;
 	}
-	download_count++;
-	// seek to page base
-	fseek(pm_backing_store, page_number * PAGE_FRAME_SIZE, SEEK_SET);
-	// read page into physical mem
-	fread(pm_memory + frame_number * PAGE_FRAME_SIZE,
-	      // objects size in byte
-	      1,
-	      // num objects to read
-	      PAGE_FRAME_SIZE,
-	      // input
-	      pm_backing_store);
 
+	if (fseek(pm_backing_store, page_number * PAGE_FRAME_SIZE, SEEK_SET) <
+	    0) {
+		perror("PM");
+		return;
+	}
+
+	/* XXX Copy to buffer first? */
+	fread(pm_memory + frame_number * PAGE_FRAME_SIZE,
+	      PAGE_FRAME_SIZE, 1, pm_backing_store);
+
+	if (ferror(pm_backing_store)) {
+		fprintf(stderr, "PM: error in backing store\n");
+		return;
+	}
+
+	download_count++;
 }
 
 // Sauvegarde le frame spécifiée dans la page du backing store
 void pm_backup_page(unsigned int frame_number, unsigned int page_number)
 {
 	if (page_number >= NUM_PAGES || frame_number >= NUM_FRAMES) {
-		//TODO CHANGE EXIT CODE
-		perror("PAGE NUMBER OR FRAME NUMBER OUT OF BOUND");
-		exit(-1);
+		fprintf(stderr, "PM: invalid page or frame number\n");
+		return;
 	}
-	backup_count++;
-	fseek(pm_backing_store, page_number * PAGE_FRAME_SIZE, SEEK_SET);
+
+	if (fseek(pm_backing_store, page_number * PAGE_FRAME_SIZE, SEEK_SET) <
+	    0) {
+		perror("PM");
+		return;
+	}
+
+	/* XXX Copy to buffer first? */
 	fwrite(pm_memory + frame_number * PAGE_FRAME_SIZE,
-	       // objects size in byte
-	       1,
-	       // num objects to read
-	       PAGE_FRAME_SIZE,
-	       // output
-	       pm_backing_store);
+	       PAGE_FRAME_SIZE, 1, pm_backing_store);
+
+	if (ferror(pm_backing_store)) {
+		fprintf(stderr, "PM: error in backing store\n");
+		return;
+	}
+
+	backup_count++;
 }
 
 char pm_read(unsigned int physical_address)
 {
 	if (physical_address >= PHYSICAL_MEMORY_SIZE) {
-		//TODO CHANGE EXIT CODE
-		perror("PHYSICAL ADDRESS OUT OF BOUND");
-		exit(-1);
+		fprintf(stderr, "PM: invalid physical address\n");
+		return '!';
 	}
+
 	read_count++;
 	return pm_memory[physical_address];
 }
@@ -76,10 +87,10 @@ char pm_read(unsigned int physical_address)
 void pm_write(unsigned int physical_address, char c)
 {
 	if (physical_address >= PHYSICAL_MEMORY_SIZE) {
-		//TODO CHANGE EXIT CODE
-		perror("PHYSICAL ADDRESS OUT OF BOUND");
-		exit(-1);
+		fprintf(stderr, "PM: invalid physical address\n");
+		return;
 	}
+
 	write_count++;
 	pm_memory[physical_address] = c;
 }
