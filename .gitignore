@@ -9,3 +9,6 @@ build/
 # Indent
 *.c~
 *.h~
+
+# Misc
+tests/BACKING_STORE.txt
