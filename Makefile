@@ -1,7 +1,6 @@
 BUILD_DIR=build
 CC=gcc
 CFLAGS=-g -std=gnu99 -Wall -pedantic -Isrc -I$(BUILD_DIR)
-LDFLAGS=
 BISON=bison
 FLEX=flex
 
@@ -14,7 +13,7 @@ default: all
 all: $(BUILD_DIR)/vmm rapport.pdf
 
 $(BUILD_DIR)/vmm: $(patsubst %.o, $(BUILD_DIR)/%.o, $(OBJS))
-	$(CC) $(LDFLAGS) -o $@ $(patsubst %.o,$(BUILD_DIR)/%.o, $(OBJS))
+	$(CC) -o $@ $(patsubst %.o,$(BUILD_DIR)/%.o, $(OBJS))
 
 $(BUILD_DIR)/%.o: src/%.c
 	@[ -d "$$(dirname "$@")" ] || mkdir -p "$$(dirname "$@")"
@@ -29,10 +28,7 @@ $(BUILD_DIR)/tokens.c: src/tokens.l
 	$(FLEX) -o $@ $<
 
 run: all
-	$(BUILD_DIR)/vmm tests/BACKING_STORE.txt <tests/command.in
-
-clean:
-	$(RM) -r $(BUILD_DIR) *.aux *.log src/*.{c,h}~
+	$(BUILD_DIR)/vmm tests/BACKING_STORE.txt < tests/command.in
 
 indent:
 	indent -linux src/*.{c,h}
@@ -40,6 +36,9 @@ indent:
 %.pdf: %.tex
 	pdflatex $<
 
+clean:
+	$(RM) -r $(BUILD_DIR) *.aux *.log *.pdf src/*.{c,h}~
+
 release:
-	gtar -czv -f tp3.tar.gz --transform 's|^|tp3/|' \
-	    src *.tex *.pdf tests GNUmakefile
+	tar -czv -f tp3.tar.gz --transform 's|^|tp3/|' \
+	    src tests *.tex *.pdf Makefile

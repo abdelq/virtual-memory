@@ -105,9 +105,9 @@ int pt_lookup(unsigned int page_number)
 /* Imprime un sommaires des accès */
 void pt_clean(void)
 {
-	fprintf(stdout, "PT lookups: %3u\n", pt_lookup_count);
-	fprintf(stdout, "PT changes: %3u\n", pt_set_count);
-	fprintf(stdout, "Page Faults: %3u\n", pt_page_fault_count);
+	printf("PT lookups   : %3u\n", pt_lookup_count);
+	printf("PT changes   : %3u\n", pt_set_count);
+	printf("Page Faults  : %3u\n", pt_page_fault_count);
 
 	if (pt_log) {
 		for (unsigned int i = 0; i < NUM_PAGES; i++) {

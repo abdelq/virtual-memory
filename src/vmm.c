@@ -105,6 +105,6 @@ void vmm_write(unsigned int laddress, char c)
 
 void vmm_clean(void)
 {
-	printf("VM reads: %4u\n", read_count);
+	printf("VM reads : %4u\n", read_count);
 	printf("VM writes: %4u\n", write_count);
 }

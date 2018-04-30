@@ -161,8 +161,8 @@ void pm_clean(void)
 		}
 	}
 
-	fprintf(stdout, "Page downloads: %2u\n", download_count);
-	fprintf(stdout, "Page backups: %2u\n", backup_count);
-	fprintf(stdout, "PM reads: %4u\n", read_count);
-	fprintf(stdout, "PM writes: %4u\n", write_count);
+	printf("Page downloads: %2u\n", download_count);
+	printf("Page backups  : %2u\n", backup_count);
+	printf("PM reads : %4u\n", read_count);
+	printf("PM writes: %4u\n", write_count);
 }

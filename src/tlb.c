@@ -75,9 +75,9 @@ int tlb_lookup(unsigned int page_number, bool write)
 /* Imprime un sommaires des accès */
 void tlb_clean(void)
 {
-	fprintf(stdout, "TLB misses: %3u\n", tlb_miss_count);
-	fprintf(stdout, "TLB hits: %3u\n", tlb_hit_count);
-	fprintf(stdout, "TLB changes: %3u\n", tlb_mod_count);
-	fprintf(stdout, "TLB miss rate: %.1f%%\n",
-		100 * tlb_miss_count / (0.01 + tlb_hit_count + tlb_miss_count));
+	printf("TLB misses   : %3u\n", tlb_miss_count);
+	printf("TLB hits     : %3u\n", tlb_hit_count);
+	printf("TLB changes  : %3u\n", tlb_mod_count);
+	printf("TLB miss rate: %.1f%%\n",
+	       100 * tlb_miss_count / (0.01 + tlb_hit_count + tlb_miss_count));
 }

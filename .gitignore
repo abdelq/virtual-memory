@@ -1,11 +1,11 @@
 # Build
 build/
+
+# Report
 *.pdf
+*.aux
+*.log
 
 # Indent
 *.c~
 *.h~
-
-# LaTeX
-*.aux
-*.log
