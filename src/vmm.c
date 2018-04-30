@@ -1,12 +1,8 @@
-#include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <time.h>
 
-#include "conf.h"
 #include "common.h"
+#include "conf.h"
 #include "vmm.h"
 #include "tlb.h"
 #include "pt.h"
@@ -23,13 +19,12 @@ typedef struct {
 	unsigned int paddress;
 } addr;
 
+/* Initialise le fichier de journal */
 void vmm_init(FILE * log)
 {
-	// Initialise le fichier de journal.
 	vmm_log = log;
 }
 
-// NE PAS MODIFIER CETTE FONCTION
 static void vmm_log_command(FILE * out, const char *command,
 			    unsigned int laddress,
 			    unsigned int page, unsigned int frame,
@@ -40,35 +35,42 @@ static void vmm_log_command(FILE * out, const char *command,
 			command, c, laddress, page, offset, frame, paddress);
 }
 
-// Translate logical address and give info
+/* Translate logical address and give info */
 addr get_addr(unsigned int laddress, bool write)
 {
 	addr data = {
 		.page = laddress >> 8,
 		.offset = laddress & 0xFF,
-		.frame = tlb_lookup(data.page, write)
 	};
 
-	if (data.frame < 0) {	// Not in TLB
+	if ((data.frame = tlb_lookup(data.page, write)) < 0) {	// Not in TLB
 		if ((data.frame = pt_lookup(data.page)) < 0) {	// Not in PT
-			// FIXME Choose a frame deterministically
-			srand(time(NULL));
-			data.frame = rand() % NUM_FRAMES;	// XXX
-
+			/* Source: Operating System Concepts, page 411 */
+			if ((data.frame = pm_find_free()) < 0) {
+				data.frame = pm_find_victim();	// FIXME
+				// Page out victim page
+				if () {	// FIXME If dirty and not readonly or maybe just dirty?
+					pm_backup_page(data.frame, data.page);
+				}
+			}
+			// Change to invalid
+			pt_unset_entry(data.page);
+			// Page in desired page
 			pm_download_page(data.page, data.frame);
+			// Reset page table for new page
 			pt_set_entry(data.page, data.frame);
+			pt_set_readonly(data.page, write);
 		}
 
-		tlb_add_entry(data.page, data.frame, pt_readonly_p(data.page));	// XXX
+		tlb_add_entry(data.page, data.frame, pt_readonly_p(data.page));
 	}
 
-	data.paddress = (data.frame << 8) + data.offset;	// XXX
-	//data.paddress = data.frame * PAGE_FRAME_SIZE + data.offset;
+	data.paddress = (data.frame << 8) + data.offset;
 
 	return data;
 }
 
-/* Effectue une lecture à l'adresse logique `laddress`.  */
+/* Effectue une lecture à l'adresse logique `laddress` */
 char vmm_read(unsigned int laddress)
 {
 	// Get info
@@ -83,23 +85,23 @@ char vmm_read(unsigned int laddress)
 	return c;
 }
 
-/* Effectue une écriture à l'adresse logique `laddress`.  */
+/* Effectue une écriture à l'adresse logique `laddress` */
 void vmm_write(unsigned int laddress, char c)
 {
 	// Get info
 	addr data = get_addr(laddress, true);
 	// Write
+	//pt_set_readonly(data.page, false); // XXX
 	pm_write(data.paddress, c);
-	//Log
+	// Log
 	vmm_log_command(stdout, "WRITING", laddress,
 			data.page, data.frame, data.offset, data.paddress, c);
 
 	write_count++;
 }
 
-// NE PAS MODIFIER CETTE FONCTION
 void vmm_clean(void)
 {
-	fprintf(stdout, "VM reads : %4u\n", read_count);
-	fprintf(stdout, "VM writes: %4u\n", write_count);
+	printf("VM reads: %4u\n", read_count);
+	printf("VM writes: %4u\n", write_count);
 }
