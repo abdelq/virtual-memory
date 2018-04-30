@@ -32,7 +32,7 @@ run: all
 	$(BUILD_DIR)/vmm tests/BACKING_STORE.txt <tests/command.in
 
 clean:
-	$(RM) -r $(BUILD_DIR) *.aux *.log
+	$(RM) -r $(BUILD_DIR) *.aux *.log src/*.{c,h}~
 
 indent:
 	indent -linux src/*.{c,h}
