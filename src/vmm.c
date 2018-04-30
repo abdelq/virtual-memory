@@ -13,10 +13,10 @@ static unsigned int write_count = 0;
 static FILE *vmm_log;
 
 typedef struct {
-	unsigned int page;
-	unsigned int offset;
-	unsigned int frame;
-	unsigned int paddress;
+	int page;
+	int offset;
+	int frame;
+	int paddress;
 } addr;
 
 /* Initialise le fichier de journal */
@@ -41,6 +41,7 @@ addr get_addr(unsigned int laddress, bool write)
 	addr data = {
 		.page = laddress >> 8,
 		.offset = laddress & 0xFF,
+		.frame = -1,	// XXX
 	};
 
 	if ((data.frame = tlb_lookup(data.page, write)) < 0) {	// Not in TLB
@@ -65,7 +66,7 @@ addr get_addr(unsigned int laddress, bool write)
 
 		tlb_add_entry(data.page, data.frame, pt_readonly_p(data.page));
 	}
-	pm_update_usage(data.frame);
+	pm_update_usage(data.frame);	// XXX
 
 	data.paddress = (data.frame << 8) + data.offset;
 
