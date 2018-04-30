@@ -47,14 +47,15 @@ addr get_addr(unsigned int laddress, bool write)
 		if ((data.frame = pt_lookup(data.page)) < 0) {	// Not in PT
 			/* Source: Operating System Concepts, page 411 */
 			if ((data.frame = pm_find_free()) < 0) {
-				data.frame = pm_find_victim();	// FIXME
-				// Page out victim page
-				if () {	// FIXME If dirty and not readonly or maybe just dirty?
-					pm_backup_page(data.frame, data.page);
+				data.frame = pm_find_victim();
+				int page = pm_get_page(data.frame);
+				if (pm_is_dirty(data.frame)) {
+					// Page out victim page
+					pm_backup_page(data.frame, page);
 				}
+				// Change to invalid
+				pt_unset_entry(page);
 			}
-			// Change to invalid
-			pt_unset_entry(data.page);
 			// Page in desired page
 			pm_download_page(data.page, data.frame);
 			// Reset page table for new page
@@ -64,6 +65,7 @@ addr get_addr(unsigned int laddress, bool write)
 
 		tlb_add_entry(data.page, data.frame, pt_readonly_p(data.page));
 	}
+	pm_update_usage(data.frame);
 
 	data.paddress = (data.frame << 8) + data.offset;
 
@@ -91,7 +93,7 @@ void vmm_write(unsigned int laddress, char c)
 	// Get info
 	addr data = get_addr(laddress, true);
 	// Write
-	//pt_set_readonly(data.page, false); // XXX
+	pt_set_readonly(data.page, false);	// XXX
 	pm_write(data.paddress, c);
 	// Log
 	vmm_log_command(stdout, "WRITING", laddress,

@@ -8,7 +8,7 @@ struct tlb_entry {
 	unsigned int page_number;
 	int frame_number;	// Invalide si négatif
 	bool readonly:1;
-	unsigned int uses;	// XXX
+	unsigned int uses;
 };
 
 static FILE *tlb_log = NULL;
@@ -32,11 +32,8 @@ static int tlb__lookup(unsigned int page_number, bool write)
 {
 	for (int i = 0; i < TLB_NUM_ENTRIES; i++) {
 		if (tlb_entries[i].page_number == page_number) {
-			// XXX write?
-
-			tlb_entries[i].uses++;	// XXX
-			// If invalid, frame number will already be negative
-			return tlb_entries[i].frame_number;
+			tlb_entries[i].uses++;
+			return tlb_entries[i].frame_number;	// If invalid, frame number will already be negative
 		}
 	}
 	return -1;
@@ -46,10 +43,8 @@ static int tlb__lookup(unsigned int page_number, bool write)
 static void tlb__add_entry(unsigned int page_number, unsigned int frame_number,
 			   bool readonly)
 {
-	int victim = 0;
-
 	/* Least-frequently used */
-	// XXX Review logic + efficiency
+	int victim = 0;
 	for (int i = 0; i < TLB_NUM_ENTRIES; i++) {
 		if (tlb_entries[victim].frame_number < 0)
 			break;
@@ -60,7 +55,7 @@ static void tlb__add_entry(unsigned int page_number, unsigned int frame_number,
 	}
 
 	struct tlb_entry new_entry = { page_number, frame_number, readonly, 0 };
-	tlb_entries[victim] = new_entry;	// XXX Find better way
+	tlb_entries[victim] = new_entry;
 }
 
 void tlb_add_entry(unsigned int page_number, unsigned int frame_number,
@@ -83,7 +78,6 @@ void tlb_clean(void)
 	fprintf(stdout, "TLB misses: %3u\n", tlb_miss_count);
 	fprintf(stdout, "TLB hits: %3u\n", tlb_hit_count);
 	fprintf(stdout, "TLB changes: %3u\n", tlb_mod_count);
-	fprintf(stdout, "TLB miss rate: %.1f%%\n", 100 * tlb_miss_count
-		/* Ajoute 0.01 pour éviter la division par 0 */
-		/ (0.01 + tlb_hit_count + tlb_miss_count));
+	fprintf(stdout, "TLB miss rate: %.1f%%\n",
+		100 * tlb_miss_count / (0.01 + tlb_hit_count + tlb_miss_count));
 }

@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -8,10 +9,15 @@ static FILE *pm_backing_store;
 static FILE *pm_log;
 static char pm_memory[PHYSICAL_MEMORY_SIZE];
 
+static int pm_pages[NUM_FRAMES];
+static int pm_usage[NUM_FRAMES];
+static bool pm_dirty[NUM_FRAMES];
+
 static unsigned int download_count = 0;
 static unsigned int backup_count = 0;
 static unsigned int read_count = 0;
 static unsigned int write_count = 0;
+static unsigned int usage_count = 0;
 
 /* Initialise la mémoire physique */
 void pm_init(FILE * backing_store, FILE * log)
@@ -19,6 +25,9 @@ void pm_init(FILE * backing_store, FILE * log)
 	pm_backing_store = backing_store;
 	pm_log = log;
 	memset(pm_memory, '\0', sizeof(pm_memory));
+	//memset(pm_pages, 0, sizeof(pm_pages)); // XXX
+	memset(pm_usage, 0, sizeof(pm_usage));
+	memset(pm_dirty, false, sizeof(pm_dirty));	// XXX
 }
 
 /* Charge la page demandée du backing store */
@@ -34,8 +43,9 @@ void pm_download_page(unsigned int page_number, unsigned int frame_number)
 		perror("PM");
 		return;
 	}
-
-	fread(pm_memory + frame_number * PAGE_FRAME_SIZE, sizeof(char), PAGE_FRAME_SIZE, pm_backing_store);	// XXX Buffer?
+	// XXX Buffer?
+	fread(pm_memory + frame_number * PAGE_FRAME_SIZE,
+	      sizeof(char), PAGE_FRAME_SIZE, pm_backing_store);
 
 	if (ferror(pm_backing_store)) {
 		fprintf(stderr, "PM: error in backing store\n");
@@ -43,6 +53,7 @@ void pm_download_page(unsigned int page_number, unsigned int frame_number)
 	}
 
 	download_count++;
+	pm_pages[frame_number] = page_number;
 }
 
 /* Sauvegarde le frame spécifiée dans la page du backing store */
@@ -58,8 +69,9 @@ void pm_backup_page(unsigned int frame_number, unsigned int page_number)
 		perror("PM");
 		return;
 	}
-
-	fwrite(pm_memory + frame_number * PAGE_FRAME_SIZE, sizeof(char), PAGE_FRAME_SIZE, pm_backing_store);	// XXX Buffer?
+	// XXX Buffer?
+	fwrite(pm_memory + frame_number * PAGE_FRAME_SIZE,
+	       sizeof(char), PAGE_FRAME_SIZE, pm_backing_store);
 
 	if (ferror(pm_backing_store)) {
 		fprintf(stderr, "PM: error in backing store\n");
@@ -67,6 +79,7 @@ void pm_backup_page(unsigned int frame_number, unsigned int page_number)
 	}
 
 	backup_count++;
+	pm_dirty[frame_number] = false;
 }
 
 char pm_read(unsigned int physical_address)
@@ -89,6 +102,7 @@ void pm_write(unsigned int physical_address, char c)
 
 	write_count++;
 	pm_memory[physical_address] = c;
+	pm_dirty[physical_address / PAGE_FRAME_SIZE] = true;	// XXX
 }
 
 unsigned int pm_find_free()
@@ -105,15 +119,37 @@ unsigned int pm_find_free()
 	return -1;
 }
 
+unsigned int pm_find_victim()
+{
+	/* Least-recently used */
+	unsigned int frame = 0;
+	for (int i = 0; i < NUM_FRAMES; i++)
+		if (pm_usage[i] < pm_usage[frame])
+			frame = i;
+	return frame;
+}
+
+bool pm_is_dirty(unsigned int frame_number)
+{
+	return pm_dirty[frame_number];
+}
+
+int pm_get_page(unsigned int frame_number)
+{
+	return pm_pages[frame_number];
+}
+
+void pm_update_usage(unsigned int frame_number)
+{
+	usage_count++;
+	pm_usage[frame_number] = usage_count;
+}
+
 void pm_clean(void)
 {
-	// FIXME Final backup of not backed up files
-	// Possibly create fixed array for downloaded structs, where elements get unset when backed up
-	// Then back up all those that were set but not unset
-	// How do I knew that after backup there wasn't a change ?
-	/*for (int i=0; i< NUM_PAGES; i++)
-	   if (page_table[i].dirty)
-	   pm_backup_page(); */
+	for (int i = 0; i < NUM_FRAMES; i++)
+		if (pm_dirty[i])
+			pm_backup_page(i, pm_pages[i]);
 
 	// Enregistre l'état de la mémoire physique
 	if (pm_log) {

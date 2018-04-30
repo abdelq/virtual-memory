@@ -7,7 +7,6 @@
 struct page {
 	bool valid:1;
 	bool readonly:1;
-	bool dirty:1;
 	unsigned int frame_number:16;
 };
 
@@ -50,7 +49,7 @@ static void pt__set_entry(unsigned int page_number, unsigned int frame_number)
 	}
 
 	page_table[page_number].frame_number = frame_number;
-	page_table[page_number].valid = frame_number < NUM_FRAMES;	// XXX always true?
+	page_table[page_number].valid = frame_number < NUM_FRAMES;	// XXX
 }
 
 /* Marque l'entrée de `page_number` dans la page table comme invalide */
