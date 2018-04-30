@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "conf.h"
 #include "common.h"
@@ -15,18 +16,12 @@ static unsigned int read_count = 0;
 static unsigned int write_count = 0;
 static FILE *vmm_log;
 
-// Page stuff
-#define PAGE_MASK 255
-// Offset stuff
-#define OFFSET_BITS 8
-#define OFFSET_MASK 255
-
 typedef struct {
 	unsigned int page;
 	unsigned int offset;
 	unsigned int frame;
 	unsigned int paddress;
-} address_data;
+} addr;
 
 void vmm_init(FILE * log)
 {
@@ -35,74 +30,71 @@ void vmm_init(FILE * log)
 }
 
 // NE PAS MODIFIER CETTE FONCTION
-static void vmm_log_command(FILE * out, const char *command, unsigned int laddress,	/* Logical address. */
-			    unsigned int page, unsigned int frame, unsigned int offset, unsigned int paddress,	/* Physical address.  */
-			    char c)
-{				/* Caractère lu ou écrit.  */
-	if (out)
-		fprintf(out, "%s[%c]@%05d: p=%d, o=%d, f=%d pa=%d\n", command,
-			c, laddress, page, offset, frame, paddress);
-}
-
-unsigned int handle_page_fault(unsigned int page)
+static void vmm_log_command(FILE * out, const char *command,
+			    unsigned int laddress,
+			    unsigned int page, unsigned int frame,
+			    unsigned int offset, unsigned int paddress, char c)
 {
-	//TODO
-	return -1;
+	if (out)
+		fprintf(out, "%s[%c]@%05d: p=%d, o=%d, f=%d pa=%d\n",
+			command, c, laddress, page, offset, frame, paddress);
 }
 
 // Translate logical address and give info
-address_data get_address_data(unsigned int laddress, bool write)
+addr get_addr(unsigned int laddress, bool write)
 {
-	address_data data;
-	data.page = laddress >> OFFSET_BITS & PAGE_MASK;
-	data.offset = laddress & OFFSET_MASK;
-	// Check in TLB
-	int frame = tlb_lookup(data.page, write);
-	if (frame >= 0)
-		data.frame = frame;
-	// Not in TLB
-	else {
-		// Check in Page Table
-		frame = pt_lookup(data.page);
-		if (frame >= 0)
-			data.frame = frame;
-		// Page Fault
-		else {
-			// Error handling page fault would be
-			// handled in handle_page_fault already
-			data.frame = handle_page_fault(data.page);
+	addr data = {
+		.page = laddress >> 8,
+		.offset = laddress & 0xFF,
+		.frame = tlb_lookup(data.page, write)
+	};
+
+	if (data.frame < 0) {	// Not in TLB
+		if ((data.frame = pt_lookup(data.page)) < 0) {	// Not in PT
+			// FIXME Choose a frame deterministically
+			srand(time(NULL));
+			data.frame = rand() % NUM_FRAMES;	// XXX
+
+			pm_download_page(data.page, data.frame);
+			pt_set_entry(data.page, data.frame);
 		}
+
+		tlb_add_entry(data.page, data.frame, pt_readonly_p(data.page));	// XXX
 	}
-	data.paddress = data.frame * PAGE_FRAME_SIZE + data.offset;
+
+	data.paddress = (data.frame << 8) + data.offset;	// XXX
+	//data.paddress = data.frame * PAGE_FRAME_SIZE + data.offset;
+
 	return data;
 }
 
 /* Effectue une lecture à l'adresse logique `laddress`.  */
 char vmm_read(unsigned int laddress)
 {
-	char c;
-	read_count++;
 	// Get info
-	address_data data = get_address_data(laddress, false);
+	addr data = get_addr(laddress, false);
 	// Read
-	c = pm_read(data.paddress);
+	char c = pm_read(data.paddress);
 	// Log
 	vmm_log_command(stdout, "READING", laddress,
 			data.page, data.frame, data.offset, data.paddress, c);
+
+	read_count++;
 	return c;
 }
 
 /* Effectue une écriture à l'adresse logique `laddress`.  */
 void vmm_write(unsigned int laddress, char c)
 {
-	write_count++;
 	// Get info
-	address_data data = get_address_data(laddress, true);
+	addr data = get_addr(laddress, true);
 	// Write
 	pm_write(data.paddress, c);
 	//Log
 	vmm_log_command(stdout, "WRITING", laddress,
 			data.page, data.frame, data.offset, data.paddress, c);
+
+	write_count++;
 }
 
 // NE PAS MODIFIER CETTE FONCTION
