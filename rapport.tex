@@ -29,8 +29,13 @@ L'algorithme utilisé dans le TLB est celui de \textit{Least-frequently used} (\
 
 Sans doute le pilier du projet et la partie la moins facile, elle permet de gérer quelle frame choisir et d'agir par conséquent lors d'un \textit{page fault}. L'implémentation de cette dernière partie est fortement inspirée du manuel de référence pour ce cours.
 
-%\section{Tests}
+\section{Tests}
 
-%TODO
+Les tests pour le TLB (\texttt{command1.in}) commencent par lire dans des pages
+consécutives avec un cycle plus grand que le TLB (en nombre d'entrées). Ensuite
+le même pattern est utilisé mais des accès à des pages sont insérés afin de
+tester le \textbf{LRU}.
+Pour tester le remplacement de pages (\texttt{command1.in}), la simulation est basée sur
+des accès aléatoires.
 
 \end{document}
