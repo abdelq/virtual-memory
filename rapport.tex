@@ -1,16 +1,36 @@
 \documentclass{article}
 
 \usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage[french]{babel}
 
-\title{Travail pratique \#3 - IFT-2245}
-\author{L'autre et Moi}
+\title{Travail pratique \#3 -- IFT-2245}
+\author{Abdelhakim Qbaich \and Rémi Langevin}
 
 \begin{document}
-
 \maketitle
 
-\section{Introduction}
+\section{Mémoire physique}
 
-Pour prouver que $P \not= NP$, il suffit de ...
+Ne sachant pas s'il était possible d'accéder à d'autres méthodes en dehors de \texttt{pm.c}, le fichier contient trois tableau : \texttt{pm\_pages}, \texttt{pm\_usage}, \texttt{pm\_dirty}. Le premier permet de savoir quelle page est reliée à quelle frame. Le deuxième permet de compter l'utilisation des pages pour l'agorithme LRU utilisé pour l'évincement. Finalement, le troisième tableau permet de garder une trace des frames que l'on doit \textit{backup}.
+
+Comme mentionné dans le paragraphe précédent, trouver le frame à évincer de la mémoire physique se fait avec l'algorithme \textit{Least-Recently Used} (\textbf{LRU}).
+
+\section{Table de pages}
+
+Outre quelques interrogations sur la nécessité de certains vérifications, comme avec le \texttt{page\_number} fournit, cette section était particulièrement simple. Nous avons décider de garder ces vérifications, juste au cas où.
+
+\section{Translation lookaside buffer}
+
+L'algorithme utilisé dans le TLB est celui de \textit{Least-frequently used} (\textbf{LFU}).
+À chaque lookup, le nombre d'utilisation d'une entrée dans le TLB est incrémenté. Pour ce qui est de l'évincement, nous cherchons pour la première entrée invalide. S'il n'y en a pas, il faut alors évincer l'entrée avec le plus petit nombre d'utilisations.
+
+\section{VMM}
+
+Sans doute le pilier du projet et la partie la moins facile, elle permet de gérer quelle frame choisir et d'agir par conséquent lors d'un \textit{page fault}. L'implémentation de cette dernière partie est fortement inspirée du manuel de référence pour ce cours.
+
+%\section{Tests}
+
+%TODO
 
 \end{document}
